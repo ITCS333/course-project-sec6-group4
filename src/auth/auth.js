@@ -1,18 +1,60 @@
-function login() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+// ===== LOGIN =====
+async function login() {
 
-    if (password === "password") {
-        localStorage.setItem("user", email);
-        alert("Login successful");
-        document.getElementById("userInfo").innerText = "Logged in as: " + email;
-    } else {
-        alert("Wrong password");
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!email || !password) {
+        alert("Please fill all fields");
+        return;
+    }
+
+    try {
+        let response = await fetch("api/login.php", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email,
+                password
+            })
+        });
+
+        let data = await response.json();
+
+        if (data.success) {
+
+            // save user in localStorage
+            localStorage.setItem("user", JSON.stringify(data.user));
+
+            alert("Login successful");
+
+            // show user info if element exists
+            const userInfo = document.getElementById("userInfo");
+            if (userInfo) {
+                userInfo.innerText = "Logged in as: " + data.user.email;
+            }
+
+        } else {
+            alert(data.message || "Login failed");
+        }
+
+    } catch (error) {
+        alert("Server error");
     }
 }
 
+
+// ===== LOGOUT =====
 function logout() {
+
     localStorage.removeItem("user");
-    document.getElementById("userInfo").innerText = "";
+
+    const userInfo = document.getElementById("userInfo");
+    if (userInfo) {
+        userInfo.innerText = "";
+    }
+
     alert("Logged out");
 }
