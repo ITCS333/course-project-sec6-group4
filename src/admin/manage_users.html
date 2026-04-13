@@ -1,28 +1,101 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Manage Users</title>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Admin Portal</title>
+
+     
+    <link rel="stylesheet" href="styles.css">
+
+    <script src="manage_users.js" defer></script>
 </head>
+
 <body>
 
-<h1>Manage Users</h1>
+<header>
+    <h1>Admin Portal</h1>
+</header>
 
-<form id="add-user-form">
-    <input id="user-name" placeholder="Name">
-    <input id="user-email" placeholder="Email">
-    <input id="default-password" type="password" placeholder="Password">
-    <select id="is-admin">
-        <option value="0">Student</option>
-        <option value="1">Admin</option>
-    </select>
-    <button type="submit">Add</button>
-</form>
+<main>
 
-<table>
-    <tbody id="user-table-body"></tbody>
-</table>
+    <!-- Password Section -->
+    <section>
+        <h2>Change Your Password</h2>
 
-<script src="manage_users.js"></script>
+        <form id="password-form" action="#">
+            <fieldset>
+                <legend>Password Update</legend>
+
+                <label for="current-password">Current Password</label>
+                <input type="password" id="current-password" required>
+
+                <label for="new-password">New Password</label>
+                <input type="password" id="new-password" minlength="8" required>
+
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" required>
+
+                <button type="submit" id="change">Update Password</button>
+            </fieldset>
+        </form>
+    </section>
+
+    <!-- User Management Section -->
+    <section>
+        <h2>Manage Users</h2>
+
+        <details>
+            <summary>Add New User</summary>
+
+            <form id="add-user-form" action="#">
+                <fieldset>
+                    <legend>New User Information</legend>
+
+                    <label for="user-name">Full Name</label>
+                    <input type="text" id="user-name" required>
+
+                    <label for="user-email">Email</label>
+                    <input type="email" id="user-email" required>
+
+                    <label for="default-password">Default Password</label>
+                    <input type="password" id="default-password" minlength="8" required>
+
+                    <label for="is-admin">Role</label>
+                    <select id="is-admin">
+                        <option value="0">Student</option>
+                        <option value="1">Admin</option>
+                    </select>
+
+                    <button type="submit" id="add">Add User</button>
+                </fieldset>
+            </form>
+        </details>
+
+        <h3>Registered Users</h3>
+
+        <input type="text" id="search-input" placeholder="Search by name or email...">
+
+        <table id="user-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Admin</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody id="user-table-body">
+                <!-- JS will fill this -->
+            </tbody>
+        </table>
+
+    </section>
+
+</main>
 
 </body>
 </html>
