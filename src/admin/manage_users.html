@@ -1,150 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-     
-    <meta charset="UTF-8">
-
-     
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    
-    <title>Admin Portal</title>
-
-
-    <style>
-        body {
-            font-family: Arial;
-            margin: 20px;
-        }
-
-        section {
-            margin-bottom: 30px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        table, th, td {
-            border: 1px solid #ccc;
-        }
-
-        th, td {
-            padding: 10px;
-        }
-
-        th {
-            cursor: pointer;
-            background: #f2f2f2;
-        }
-    </style>
-
-    
-    <script src="src/admin/manage_users.js" defer></script>
-
+    <title>Manage Users</title>
 </head>
-
 <body>
 
-    <header>
-        <h1>Admin Portal</h1>
-    </header>
+<h1>Manage Users</h1>
 
-    <main>
+<form id="add-user-form">
+    <input id="user-name" placeholder="Name">
+    <input id="user-email" placeholder="Email">
+    <input id="default-password" type="password" placeholder="Password">
+    <select id="is-admin">
+        <option value="0">Student</option>
+        <option value="1">Admin</option>
+    </select>
+    <button type="submit">Add</button>
+</form>
 
-        <!-- Password Section -->
-        <section>
-            <h2>Change Your Password</h2>
+<table>
+    <tbody id="user-table-body"></tbody>
+</table>
 
-            <form action="#" id="password-form">
-                <fieldset>
-                    <legend>Password Update</legend>
-
-                    <label for="current-password">Current Password</label>
-                    <input type="password" id="current-password" required>
-
-                    <br><br>
-
-                    <label for="new-password">New Password</label>
-                    <input type="password" id="new-password" minlength="8" required>
-
-                    <br><br>
-
-                    <label for="confirm-password">Confirm Password</label>
-                    <input type="password" id="confirm-password" required>
-
-                    <br><br>
-
-                    <button type="submit" id="change">Update Password</button>
-                </fieldset>
-            </form>
-        </section>
-
-
-        <!-- User Management Section -->
-        <section>
-            <h2>Manage Users</h2>
-
-            <details>
-                <summary>Add New User</summary>
-
-                <form action="#" id="add-user-form">
-                    <fieldset>
-                        <legend>New User Information</legend>
-
-                        <label for="user-name">Full Name</label>
-                        <input type="text" id="user-name" required>
-
-                        <br><br>
-
-                        <label for="user-email">Email</label>
-                        <input type="email" id="user-email" required>
-
-                        <br><br>
-
-                        <label for="default-password">Default Password</label>
-                        <input type="password" id="default-password" minlength="8" required>
-
-                        <br><br>
-
-                        <label for="is-admin">Role</label>
-                        <select id="is-admin">
-                            <option value="0">Student</option>
-                            <option value="1">Admin</option>
-                        </select>
-
-                        <br><br>
-
-                        <button type="submit" id="add">Add User</button>
-                    </fieldset>
-                </form>
-            </details>
-
-            <h3>Registered Users</h3>
-
-            <input type="text" id="search-input" placeholder="Search by name or email...">
-
-            <br><br>
-
-            <table id="user-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Admin</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-
-                <tbody id="user-table-body">
-                    
-                </tbody>
-            </table>
-
-        </section>
-
-    </main>
+<script src="manage_users.js"></script>
 
 </body>
 </html>
