@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once "db.php"; // اتصال قاعدة البيانات
+require_once "db.php";  
 
 $db = getDBConnection();
 
