@@ -1,1 +1,26 @@
 <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ITCS333 Course Website</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>Welcome to ITCS333 Course Website</h1>
+
+    <div id="userInfo"></div>
+
+    <!-- Login Form -->
+    <div id="loginSection">
+        <h3>Login</h3>
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <button onclick="logout()">Logout</button>
+
+    <script src="src/auth/auth.js"></script>
+</body>
+</html>
