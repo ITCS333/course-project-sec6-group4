@@ -1,6 +1,7 @@
 <?php
 
 session_start();
+
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -12,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// --- Allow only POST ---
+// allow only POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode([
         "success" => false,
@@ -21,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// --- Get JSON input ---
+// get input
 $raw = file_get_contents("php://input");
 $data = json_decode($raw, true);
 
@@ -36,7 +37,7 @@ if (!isset($data['email']) || !isset($data['password'])) {
 $email = trim($data['email']);
 $password = $data['password'];
 
-// --- Validation ---
+// validation
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     echo json_encode([
         "success" => false,
@@ -53,7 +54,6 @@ if (strlen($password) < 8) {
     exit;
 }
 
-// --- DB ---
 require_once "../../db.php";
 
 try {
@@ -72,7 +72,6 @@ try {
 
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // --- User not found ---
     if (!$user || !password_verify($password, $user['password'])) {
         echo json_encode([
             "success" => false,
@@ -81,14 +80,13 @@ try {
         exit;
     }
 
-    // --- SESSION ---
+    // session
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['user_name'] = $user['name'];
     $_SESSION['user_email'] = $user['email'];
     $_SESSION['is_admin'] = $user['is_admin'];
     $_SESSION['logged_in'] = true;
 
-    // --- SUCCESS RESPONSE ---
     echo json_encode([
         "success" => true,
         "message" => "Login successful",
@@ -100,18 +98,13 @@ try {
         ]
     ]);
 
-    exit;
-
 } catch (PDOException $e) {
-
     error_log($e->getMessage());
 
     echo json_encode([
         "success" => false,
         "message" => "Database error"
     ]);
-
-    exit;
 }
 
 ?>
