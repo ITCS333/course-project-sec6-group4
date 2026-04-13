@@ -1,53 +1,37 @@
 let loginForm = document.getElementById("login-form");
-let emailInput = document.getElementById("email");
-let passwordInput = document.getElementById("password");
 let messageContainer = document.getElementById("message-container");
 
-// --- Display Message ---
-function displayMessage(message, type) {
+function showMessage(message, type) {
     messageContainer.textContent = message;
     messageContainer.className = type;
 }
 
-// --- Email Validation ---
-function isValidEmail(email) {
-    return /\S+@\S+\.\S+/.test(email);
-}
+loginForm.addEventListener("submit", async function (e) {
+    e.preventDefault();
 
-// --- Password Validation ---
-function isValidPassword(password) {
-    return password.length >= 8;
-}
+    let email = document.getElementById("email").value.trim();
+    let password = document.getElementById("password").value.trim();
 
-// --- Handle Login ---
-function handleLogin(event) {
-    event.preventDefault();
+    try {
+        let response = await fetch("api/login.php", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ email, password })
+        });
 
-    let email = emailInput.value.trim();
-    let password = passwordInput.value.trim();
+        let data = await response.json();
 
-    if (!isValidEmail(email)) {
-        displayMessage("Invalid email format.", "error");
-        return;
+        if (data.success) {
+            showMessage("Login successful!", "success");
+
+            localStorage.setItem("user", JSON.stringify(data.user));
+        } else {
+            showMessage(data.message, "error");
+        }
+
+    } catch (error) {
+        showMessage("Server error", "error");
     }
-
-    if (!isValidPassword(password)) {
-        displayMessage("Password must be at least 8 characters.", "error");
-        return;
-    }
-
-    displayMessage("Login successful!", "success");
-
-    emailInput.value = "";
-    passwordInput.value = "";
-}
-
-// --- Setup Form ---
-function setupLoginForm() {
-    if (loginForm) {
-        loginForm.addEventListener("submit", handleLogin);
-    }
-}
-
-// --- Start ---
-setupLoginForm();
+});
