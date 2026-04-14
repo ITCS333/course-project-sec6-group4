@@ -1,223 +1,235 @@
 let users = [];
 
-// Elements (IMPORTANT: must match HTML exactly)
+// Elements
 const userTableBody = document.getElementById("user-table-body");
 const addUserForm = document.getElementById("add-user-form");
-const passwordForm = document.getElementById("password-form");
+const changePasswordForm = document.getElementById("password-form");
 const searchInput = document.getElementById("search-input");
 const tableHeaders = document.querySelectorAll("#user-table thead th");
 
-const currentUser = JSON.parse(localStorage.getItem("user")) || {};
-
-// ---------------- CREATE ROW ----------------
+// Create Row
 function createUserRow(user) {
-    const tr = document.createElement("tr");
+  const tr = document.createElement("tr");
 
-    tr.innerHTML = `
-        <td>${user.name}</td>
-        <td>${user.email}</td>
-        <td>${Number(user.is_admin) === 1 ? "Yes" : "No"}</td>
-        <td>
-            <button class="edit-btn" data-id="${user.id}">Edit</button>
-            <button class="delete-btn" data-id="${user.id}">Delete</button>
-        </td>
-    `;
+  const nameTd = document.createElement("td");
+  nameTd.textContent = user.name;
 
-    return tr;
+  const emailTd = document.createElement("td");
+  emailTd.textContent = user.email;
+
+  const adminTd = document.createElement("td");
+  adminTd.textContent = Number(user.is_admin) === 1 ? "Yes" : "No";
+
+  const actionTd = document.createElement("td");
+
+  const editBtn = document.createElement("button");
+  editBtn.className = "edit-btn";
+  editBtn.dataset.id = user.id;
+  editBtn.textContent = "Edit";
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "delete-btn";
+  deleteBtn.dataset.id = user.id;
+  deleteBtn.textContent = "Delete";
+
+  actionTd.appendChild(editBtn);
+  actionTd.appendChild(deleteBtn);
+
+  tr.appendChild(nameTd);
+  tr.appendChild(emailTd);
+  tr.appendChild(adminTd);
+  tr.appendChild(actionTd);
+
+  return tr;
 }
 
-// ---------------- RENDER ----------------
+// Render
 function renderTable(userArray) {
-    userTableBody.innerHTML = "";
-    userArray.forEach(user => {
-        userTableBody.appendChild(createUserRow(user));
-    });
+  userTableBody.innerHTML = "";
+  userArray.forEach(user => {
+    userTableBody.appendChild(createUserRow(user));
+  });
 }
 
-// ---------------- CHANGE PASSWORD ----------------
+// Change Password
 async function handleChangePassword(event) {
-    event.preventDefault();
+  event.preventDefault();
 
-    const current_password = document.getElementById("current-password").value.trim();
-    const new_password = document.getElementById("new-password").value.trim();
-    const confirm_password = document.getElementById("confirm-password").value.trim();
+  const current = document.getElementById("current-password").value;
+  const newPass = document.getElementById("new-password").value;
+  const confirm = document.getElementById("confirm-password").value;
 
-    if (new_password !== confirm_password) {
-        alert("Passwords do not match.");
-        return;
-    }
+  if (newPass !== confirm) {
+    alert("Passwords do not match.");
+    return;
+  }
 
-    if (new_password.length < 8) {
-        alert("Password must be at least 8 characters.");
-        return;
-    }
+  if (newPass.length < 8) {
+    alert("Password must be at least 8 characters.");
+    return;
+  }
 
-    const res = await fetch("../api/index.php?action=change_password", {
-        method: "POST",
+  const id = localStorage.getItem("userId") || 1;
+
+  const res = await fetch("../api/index.php?action=change_password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id,
+      current_password: current,
+      new_password: newPass
+    })
+  });
+
+  const data = await res.json();
+
+  if (res.ok && data.success) {
+    alert("Password updated successfully!");
+    changePasswordForm.reset();
+  } else {
+    alert(data.message);
+  }
+}
+
+// Add User
+async function handleAddUser(event) {
+  event.preventDefault();
+
+  const name = document.getElementById("user-name").value;
+  const email = document.getElementById("user-email").value;
+  const password = document.getElementById("default-password").value;
+  const is_admin = document.getElementById("is-admin").value;
+
+  if (!name || !email || !password) {
+    alert("Please fill out all required fields.");
+    return;
+  }
+
+  if (password.length < 8) {
+    alert("Password must be at least 8 characters.");
+    return;
+  }
+
+  const res = await fetch("../api/index.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, password, is_admin })
+  });
+
+  const data = await res.json();
+
+  if (res.status === 201) {
+    addUserForm.reset();
+    loadUsersAndInitialize();
+  } else {
+    alert(data.message);
+  }
+}
+
+// Delete/Edit
+function handleTableClick(event) {
+  const id = event.target.dataset.id;
+
+  if (event.target.classList.contains("delete-btn")) {
+    fetch("../api/index.php?id=" + id, {
+      method: "DELETE"
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          users = users.filter(u => u.id != id);
+          renderTable(users);
+        } else {
+          alert(data.message);
+        }
+      });
+  }
+
+  if (event.target.classList.contains("edit-btn")) {
+    const user = users.find(u => u.id == id);
+    const newName = prompt("Edit name", user.name);
+    const newEmail = prompt("Edit email", user.email);
+
+    if (newName && newEmail) {
+      fetch("../api/index.php", {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            id: currentUser.id,
-            current_password,
-            new_password
+          id,
+          name: newName,
+          email: newEmail,
+          is_admin: user.is_admin
         })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-        alert("Password updated successfully!");
-        passwordForm.reset();
-    } else {
-        alert(data.message);
+      })
+        .then(res => res.json())
+        .then(() => loadUsersAndInitialize());
     }
+  }
 }
 
-// ---------------- ADD USER ----------------
-async function handleAddUser(event) {
-    event.preventDefault();
-
-    const name = document.getElementById("user-name").value.trim();
-    const email = document.getElementById("user-email").value.trim();
-    const password = document.getElementById("default-password").value.trim();
-    const is_admin = Number(document.getElementById("is-admin").value);
-
-    if (!name || !email || !password) {
-        alert("Please fill out all required fields.");
-        return;
-    }
-
-    if (password.length < 8) {
-        alert("Password must be at least 8 characters.");
-        return;
-    }
-
-    const res = await fetch("../api/index.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, is_admin })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-        addUserForm.reset();
-        loadUsersAndInitialize();
-    } else {
-        alert(data.message);
-    }
-}
-
-// ---------------- DELETE / EDIT ----------------
-async function handleTableClick(event) {
-    const id = event.target.dataset.id;
-
-    if (event.target.classList.contains("delete-btn")) {
-
-        const res = await fetch("../api/index.php?id=" + id, {
-            method: "DELETE"
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-            users = users.filter(u => u.id != id);
-            renderTable(users);
-        } else {
-            alert(data.message);
-        }
-    }
-
-    if (event.target.classList.contains("edit-btn")) {
-
-        const newName = prompt("Enter new name:");
-        const newEmail = prompt("Enter new email:");
-
-        const res = await fetch("../api/index.php", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, name: newName, email: newEmail })
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-            loadUsersAndInitialize();
-        } else {
-            alert(data.message);
-        }
-    }
-}
-
-// ---------------- SEARCH ----------------
+// Search
 function handleSearch() {
-    const term = searchInput.value.toLowerCase();
+  const term = searchInput.value.toLowerCase();
 
-    if (!term) {
-        renderTable(users);
-        return;
-    }
+  if (!term) {
+    renderTable(users);
+    return;
+  }
 
-    const filtered = users.filter(u =>
-        u.name.toLowerCase().includes(term) ||
-        u.email.toLowerCase().includes(term)
-    );
+  const filtered = users.filter(u =>
+    u.name.toLowerCase().includes(term) ||
+    u.email.toLowerCase().includes(term)
+  );
 
-    renderTable(filtered);
+  renderTable(filtered);
 }
 
-// ---------------- SORT ----------------
+// Sort
 function handleSort(event) {
-    const index = event.currentTarget.cellIndex;
+  const index = event.currentTarget.cellIndex;
+  const keys = ["name", "email", "is_admin"];
+  const key = keys[index];
 
-    const keys = ["name", "email", "is_admin"];
-    const key = keys[index];
+  let dir = event.currentTarget.dataset.sortDir || "asc";
+  dir = dir === "asc" ? "desc" : "asc";
+  event.currentTarget.dataset.sortDir = dir;
 
-    let dir = event.currentTarget.dataset.sortDir || "asc";
-    dir = dir === "asc" ? "desc" : "asc";
-    event.currentTarget.dataset.sortDir = dir;
+  users.sort((a, b) => {
+    if (key === "is_admin") {
+      return dir === "asc"
+        ? a.is_admin - b.is_admin
+        : b.is_admin - a.is_admin;
+    }
 
-    users.sort((a, b) => {
-        if (key === "is_admin") {
-            return dir === "asc"
-                ? Number(a[key]) - Number(b[key])
-                : Number(b[key]) - Number(a[key]);
-        }
+    return dir === "asc"
+      ? a[key].localeCompare(b[key])
+      : b[key].localeCompare(a[key]);
+  });
 
-        return dir === "asc"
-            ? a[key].localeCompare(b[key])
-            : b[key].localeCompare(a[key]);
-    });
-
-    renderTable(users);
+  renderTable(users);
 }
 
-// ---------------- LOAD USERS ----------------
+// Load
 async function loadUsersAndInitialize() {
-    const res = await fetch("../api/index.php");
+  const res = await fetch("../api/index.php");
+  const data = await res.json();
 
-    if (!res.ok) {
-        alert("Error loading users");
-        return;
-    }
+  if (!res.ok) {
+    alert("Error loading users");
+    return;
+  }
 
-    const data = await res.json();
-    users = data.data;
+  users = data.data;
+  renderTable(users);
 
-    renderTable(users);
+  changePasswordForm.addEventListener("submit", handleChangePassword);
+  addUserForm.addEventListener("submit", handleAddUser);
+  userTableBody.addEventListener("click", handleTableClick);
+  searchInput.addEventListener("input", handleSearch);
 
-    if (!addUserForm.dataset.bound) {
-
-        addUserForm.addEventListener("submit", handleAddUser);
-        passwordForm.addEventListener("submit", handleChangePassword);
-        userTableBody.addEventListener("click", handleTableClick);
-        searchInput.addEventListener("input", handleSearch);
-
-        tableHeaders.forEach(th => {
-            th.addEventListener("click", handleSort);
-        });
-
-        addUserForm.dataset.bound = "true";
-    }
+  tableHeaders.forEach(th => {
+    th.addEventListener("click", handleSort);
+  });
 }
 
 loadUsersAndInitialize();
