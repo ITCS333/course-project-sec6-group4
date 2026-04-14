@@ -1,29 +1,16 @@
 <?php
 header("Content-Type: application/json");
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
-
-require_once "db.php";
 $db = getDBConnection();
-
 $method = $_SERVER['REQUEST_METHOD'];
-$raw = file_get_contents("php://input");
-$data = json_decode($raw, true);
-
+$data = json_decode(file_get_contents("php://input"), true);
 $id = $_GET['id'] ?? null;
 $action = $_GET['action'] ?? null;
-$search = $_GET['search'] ?? null;
-$sort = $_GET['sort'] ?? null;
-$order = $_GET['order'] ?? "asc";
 
+// ===== RESPONSE =====
 function sendResponse($data, $status = 200) {
     http_response_code($status);
+
     if ($status < 400) {
         echo json_encode(["success" => true, "data" => $data]);
     } else {
@@ -32,107 +19,140 @@ function sendResponse($data, $status = 200) {
     exit;
 }
 
+// ===== GET USERS =====
 function getUsers($db) {
-    global $search, $sort, $order;
-
-    $sql = "SELECT id, name, email, is_admin, created_at FROM users";
-    $params = [];
-
-    if ($search) {
-        $sql .= " WHERE name LIKE :s OR email LIKE :s";
-        $params[":s"] = "%$search%";
-    }
-
-    $allowed = ["name", "email", "is_admin"];
-    if (in_array($sort, $allowed)) {
-        $sql .= " ORDER BY $sort " . ($order === "desc" ? "DESC" : "ASC");
-    }
-
-    $stmt = $db->prepare($sql);
-    $stmt->execute($params);
+    $stmt = $db->query("SELECT id, name, email, is_admin, created_at FROM users");
     sendResponse($stmt->fetchAll(PDO::FETCH_ASSOC));
 }
 
+// ===== GET USER =====
 function getUserById($db, $id) {
     $stmt = $db->prepare("SELECT id, name, email, is_admin, created_at FROM users WHERE id=?");
     $stmt->execute([$id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$user) sendResponse("Not found", 404);
+    if (!$user) sendResponse("User not found", 404);
     sendResponse($user);
 }
 
+// ===== CREATE =====
 function createUser($db, $data) {
-    if (!$data['name'] || !$data['email'] || !$data['password']) {
+    if (!$data["name"] || !$data["email"] || !$data["password"]) {
         sendResponse("Missing fields", 400);
     }
 
-    if (strlen($data['password']) < 8) {
+    if (!filter_var($data["email"], FILTER_VALIDATE_EMAIL)) {
+        sendResponse("Invalid email", 400);
+    }
+
+    if (strlen($data["password"]) < 8) {
         sendResponse("Password too short", 400);
     }
 
     $check = $db->prepare("SELECT id FROM users WHERE email=?");
-    $check->execute([$data['email']]);
+    $check->execute([$data["email"]]);
     if ($check->fetch()) {
-        sendResponse("Email exists", 409);
+        sendResponse("Email already exists", 409);
     }
 
-    $pass = password_hash($data['password'], PASSWORD_DEFAULT);
-    $is = $data['is_admin'] ?? 0;
+    $hash = password_hash($data["password"], PASSWORD_DEFAULT);
+    $is_admin = $data["is_admin"] ?? 0;
 
     $stmt = $db->prepare("INSERT INTO users (name,email,password,is_admin) VALUES (?,?,?,?)");
-    $stmt->execute([$data['name'],$data['email'],$pass,$is]);
+    $stmt->execute([$data["name"], $data["email"], $hash, $is_admin]);
 
-    sendResponse(["id"=>$db->lastInsertId()], 201);
+    sendResponse(["id" => $db->lastInsertId()], 201);
 }
 
+// ===== UPDATE =====
 function updateUser($db, $data) {
+    if (!$data["id"]) sendResponse("Missing id", 400);
+
+    $stmt = $db->prepare("SELECT * FROM users WHERE id=?");
+    $stmt->execute([$data["id"]]);
+    if (!$stmt->fetch()) sendResponse("Not found", 404);
+
+    if (!empty($data["email"])) {
+        $check = $db->prepare("SELECT id FROM users WHERE email=? AND id != ?");
+        $check->execute([$data["email"], $data["id"]]);
+        if ($check->fetch()) sendResponse("Email exists", 409);
+    }
+
     $stmt = $db->prepare("UPDATE users SET name=?, email=?, is_admin=? WHERE id=?");
-    $stmt->execute([$data['name'],$data['email'],$data['is_admin'],$data['id']]);
-    sendResponse("updated");
+    $stmt->execute([
+        $data["name"] ?? "",
+        $data["email"] ?? "",
+        $data["is_admin"] ?? 0,
+        $data["id"]
+    ]);
+
+    sendResponse("Updated");
 }
 
+// ===== DELETE =====
 function deleteUser($db, $id) {
-    $stmt = $db->prepare("DELETE FROM users WHERE id=?", [$id]);
-    $stmt->execute();
-    sendResponse("deleted");
+    if (!$id) sendResponse("Missing id", 400);
+
+    $check = $db->prepare("SELECT id FROM users WHERE id=?");
+    $check->execute([$id]);
+    if (!$check->fetch()) sendResponse("Not found", 404);
+
+    $stmt = $db->prepare("DELETE FROM users WHERE id=?");
+    $stmt->execute([$id]);
+
+    sendResponse("Deleted");
 }
 
+// ===== PASSWORD =====
 function changePassword($db, $data) {
+    if (!$data["id"] || !$data["current_password"] || !$data["new_password"]) {
+        sendResponse("Missing fields", 400);
+    }
+
+    if (strlen($data["new_password"]) < 8) {
+        sendResponse("Password too short", 400);
+    }
+
     $stmt = $db->prepare("SELECT password FROM users WHERE id=?");
-    $stmt->execute([$data['id']]);
+    $stmt->execute([$data["id"]]);
     $user = $stmt->fetch();
 
     if (!$user) sendResponse("Not found", 404);
 
-    if (!password_verify($data['current_password'], $user['password'])) {
+    if (!password_verify($data["current_password"], $user["password"])) {
         sendResponse("Wrong password", 401);
     }
 
-    $new = password_hash($data['new_password'], PASSWORD_DEFAULT);
+    $hash = password_hash($data["new_password"], PASSWORD_DEFAULT);
 
     $stmt = $db->prepare("UPDATE users SET password=? WHERE id=?");
-    $stmt->execute([$new, $data['id']]);
+    $stmt->execute([$hash, $data["id"]]);
 
-    sendResponse("password updated");
+    sendResponse("Password updated");
 }
 
+// ===== ROUTER =====
 try {
     if ($method === "GET") {
-        if ($id) getUserById($db, $id);
-        else getUsers($db);
+        $id ? getUserById($db, $id) : getUsers($db);
     }
-
-    if ($method === "POST") {
-        if ($action === "change_password") changePassword($db, $data);
-        else createUser($db, $data);
+    elseif ($method === "POST") {
+        if ($action === "change_password") {
+            changePassword($db, $data);
+        } else {
+            createUser($db, $data);
+        }
     }
-
-    if ($method === "PUT") updateUser($db, $data);
-
-    if ($method === "DELETE") deleteUser($db, $id);
+    elseif ($method === "PUT") {
+        updateUser($db, $data);
+    }
+    elseif ($method === "DELETE") {
+        deleteUser($db, $id);
+    }
+    else {
+        sendResponse("Method not allowed", 405);
+    }
 
 } catch (Exception $e) {
-    sendResponse($e->getMessage(), 500);
+    sendResponse("Server error", 500);
 }
-?>
