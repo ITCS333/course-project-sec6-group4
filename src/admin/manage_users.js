@@ -1,38 +1,58 @@
 let users = [];
 
-
+// Element selections
 const userTableBody = document.getElementById("user-table-body");
 const addUserForm = document.getElementById("add-user-form");
 const passwordForm = document.getElementById("password-form");
 const searchInput = document.getElementById("search-input");
 const tableHeaders = document.querySelectorAll("#user-table thead th");
 
-
+// ---------------- CREATE ROW ----------------
 function createUserRow(user) {
   const tr = document.createElement("tr");
 
-  tr.innerHTML = `
-    <td>${user.name}</td>
-    <td>${user.email}</td>
-    <td>${user.is_admin == 1 ? "Yes" : "No"}</td>
-    <td>
-      <button class="edit-btn" data-id="${user.id}">Edit</button>
-      <button class="delete-btn" data-id="${user.id}">Delete</button>
-    </td>
-  `;
+  const nameTd = document.createElement("td");
+  nameTd.textContent = user.name;
+
+  const emailTd = document.createElement("td");
+  emailTd.textContent = user.email;
+
+  const adminTd = document.createElement("td");
+  adminTd.textContent = user.is_admin === 1 ? "Yes" : "No";
+
+  const actionsTd = document.createElement("td");
+
+  const editBtn = document.createElement("button");
+  editBtn.className = "edit-btn";
+  editBtn.dataset.id = user.id;
+  editBtn.textContent = "Edit";
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "delete-btn";
+  deleteBtn.dataset.id = user.id;
+  deleteBtn.textContent = "Delete";
+
+  actionsTd.appendChild(editBtn);
+  actionsTd.appendChild(deleteBtn);
+
+  tr.appendChild(nameTd);
+  tr.appendChild(emailTd);
+  tr.appendChild(adminTd);
+  tr.appendChild(actionsTd);
 
   return tr;
 }
 
-
+// ---------------- RENDER TABLE ----------------
 function renderTable(userArray) {
   userTableBody.innerHTML = "";
-  userArray.forEach(user => {
-    userTableBody.appendChild(createUserRow(user));
-  });
+
+  for (let i = 0; i < userArray.length; i++) {
+    userTableBody.appendChild(createUserRow(userArray[i]));
+  }
 }
 
-
+// ---------------- CHANGE PASSWORD ----------------
 async function handleChangePassword(event) {
   event.preventDefault();
 
@@ -50,13 +70,16 @@ async function handleChangePassword(event) {
     return;
   }
 
-  const id =
-    (typeof localStorage !== "undefined" && localStorage.getItem("userId")) || 1;
+  const id = 1;
 
   const res = await fetch("../api/index.php?action=change_password", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, current_password, new_password })
+    body: JSON.stringify({
+      id,
+      current_password,
+      new_password
+    })
   });
 
   const data = await res.json();
@@ -69,7 +92,7 @@ async function handleChangePassword(event) {
   }
 }
 
-
+// ---------------- ADD USER ----------------
 async function handleAddUser(event) {
   event.preventDefault();
 
@@ -91,7 +114,12 @@ async function handleAddUser(event) {
   const res = await fetch("../api/index.php", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password, is_admin })
+    body: JSON.stringify({
+      name,
+      email,
+      password,
+      is_admin
+    })
   });
 
   if (res.status === 201) {
@@ -103,12 +131,13 @@ async function handleAddUser(event) {
   }
 }
 
-
+// ---------------- TABLE CLICK ----------------
 async function handleTableClick(event) {
-  const id = event.target.dataset.id;
+  const target = event.target;
+  const id = target.dataset.id;
 
-  if (event.target.classList.contains("delete-btn")) {
-    const res = await fetch(`../api/index.php?id=${id}`, {
+  if (target.classList.contains("delete-btn")) {
+    const res = await fetch("../api/index.php?id=" + id, {
       method: "DELETE"
     });
 
@@ -122,19 +151,17 @@ async function handleTableClick(event) {
     }
   }
 
-  if (event.target.classList.contains("edit-btn")) {
-    const newName = prompt("Enter new name:");
-    const newEmail = prompt("Enter new email:");
-
-    if (!newName || !newEmail) return;
+  if (target.classList.contains("edit-btn")) {
+    const name = prompt("Enter new name");
+    const email = prompt("Enter new email");
 
     const res = await fetch("../api/index.php", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id,
-        name: newName,
-        email: newEmail
+        name,
+        email
       })
     });
 
@@ -148,37 +175,44 @@ async function handleTableClick(event) {
   }
 }
 
-
+// ---------------- SEARCH ----------------
 function handleSearch() {
   const term = searchInput.value.toLowerCase();
 
-  if (!term) return renderTable(users);
+  if (!term) {
+    renderTable(users);
+    return;
+  }
 
-  const filtered = users.filter(
-    u =>
-      u.name.toLowerCase().includes(term) ||
-      u.email.toLowerCase().includes(term)
+  const filtered = users.filter(u =>
+    u.name.toLowerCase().includes(term) ||
+    u.email.toLowerCase().includes(term)
   );
 
   renderTable(filtered);
 }
 
-
+// ---------------- SORT ----------------
 function handleSort(event) {
   const index = event.currentTarget.cellIndex;
 
-  const map = ["name", "email", "is_admin"];
-  const key = map[index];
+  let key = "";
+  if (index === 0) key = "name";
+  if (index === 1) key = "email";
+  if (index === 2) key = "is_admin";
 
   let dir = event.currentTarget.dataset.sortDir || "asc";
   dir = dir === "asc" ? "desc" : "asc";
   event.currentTarget.dataset.sortDir = dir;
 
   users.sort((a, b) => {
-    let res =
-      key === "is_admin"
-        ? Number(a[key]) - Number(b[key])
-        : a[key].localeCompare(b[key]);
+    let res = 0;
+
+    if (key === "is_admin") {
+      res = Number(a[key]) - Number(b[key]);
+    } else {
+      res = a[key].localeCompare(b[key]);
+    }
 
     return dir === "asc" ? res : -res;
   });
@@ -186,7 +220,7 @@ function handleSort(event) {
   renderTable(users);
 }
 
-
+// ---------------- LOAD ----------------
 async function loadUsersAndInitialize() {
   const res = await fetch("../api/index.php");
   const data = await res.json();
@@ -204,9 +238,9 @@ async function loadUsersAndInitialize() {
   userTableBody.addEventListener("click", handleTableClick);
   searchInput.addEventListener("input", handleSearch);
 
-  tableHeaders.forEach(th =>
-    th.addEventListener("click", handleSort)
-  );
+  tableHeaders.forEach(th => {
+    th.addEventListener("click", handleSort);
+  });
 }
 
 loadUsersAndInitialize();
