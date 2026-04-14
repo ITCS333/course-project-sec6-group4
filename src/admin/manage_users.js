@@ -1,13 +1,13 @@
 let users = [];
 
-  
+
 const userTableBody = document.getElementById("user-table-body");
 const addUserForm = document.getElementById("add-user-form");
 const passwordForm = document.getElementById("password-form");
 const searchInput = document.getElementById("search-input");
 const tableHeaders = document.querySelectorAll("#user-table thead th");
 
-//  login
+// المستخدم الحالي من login
 const currentUser = JSON.parse(localStorage.getItem("user"));
 
 // ---------------- CREATE ROW ----------------
@@ -54,7 +54,7 @@ async function handleChangePassword(event) {
     }
 
     if (!currentUser) {
-        alert("User not logged in");
+        alert("Not logged in");
         return;
     }
 
@@ -82,8 +82,8 @@ async function handleChangePassword(event) {
 async function handleAddUser(event) {
     event.preventDefault();
 
-    const name = document.getElementById("user-name").value;
-    const email = document.getElementById("user-email").value;
+    const name = document.getElementById("user-name").value.trim();
+    const email = document.getElementById("user-email").value.trim();
     const password = document.getElementById("default-password").value;
     const is_admin = document.getElementById("is-admin").value;
 
@@ -118,6 +118,7 @@ async function handleAddUser(event) {
 async function handleTableClick(event) {
     const id = event.target.dataset.id;
 
+    // DELETE
     if (event.target.classList.contains("delete-btn")) {
 
         const res = await fetch("../api/index.php?id=" + id, {
@@ -134,10 +135,13 @@ async function handleTableClick(event) {
         }
     }
 
+    // EDIT
     if (event.target.classList.contains("edit-btn")) {
 
         const newName = prompt("Enter new name:");
         const newEmail = prompt("Enter new email:");
+
+        if (!newName || !newEmail) return;
 
         const res = await fetch("../api/index.php", {
             method: "PUT",
@@ -229,5 +233,6 @@ async function loadUsersAndInitialize() {
         addUserForm.dataset.bound = "true";
     }
 }
+
 
 loadUsersAndInitialize();
