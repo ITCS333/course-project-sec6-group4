@@ -1,23 +1,22 @@
 let users = [];
 
-// ================= DOM ELEMENTS =================
+// Elements (IMPORTANT: must match HTML exactly)
 const userTableBody = document.getElementById("user-table-body");
 const addUserForm = document.getElementById("add-user-form");
 const passwordForm = document.getElementById("password-form");
 const searchInput = document.getElementById("search-input");
 const tableHeaders = document.querySelectorAll("#user-table thead th");
 
-// المستخدم الحالي
-const currentUser = JSON.parse(localStorage.getItem("user"));
+const currentUser = JSON.parse(localStorage.getItem("user")) || {};
 
-// ================= CREATE ROW =================
+// ---------------- CREATE ROW ----------------
 function createUserRow(user) {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
         <td>${user.name}</td>
         <td>${user.email}</td>
-        <td>${user.is_admin == 1 ? "Yes" : "No"}</td>
+        <td>${Number(user.is_admin) === 1 ? "Yes" : "No"}</td>
         <td>
             <button class="edit-btn" data-id="${user.id}">Edit</button>
             <button class="delete-btn" data-id="${user.id}">Delete</button>
@@ -27,7 +26,7 @@ function createUserRow(user) {
     return tr;
 }
 
-// ================= RENDER TABLE =================
+// ---------------- RENDER ----------------
 function renderTable(userArray) {
     userTableBody.innerHTML = "";
     userArray.forEach(user => {
@@ -35,13 +34,13 @@ function renderTable(userArray) {
     });
 }
 
-// ================= CHANGE PASSWORD =================
+// ---------------- CHANGE PASSWORD ----------------
 async function handleChangePassword(event) {
     event.preventDefault();
 
-    const current_password = document.getElementById("current-password").value;
-    const new_password = document.getElementById("new-password").value;
-    const confirm_password = document.getElementById("confirm-password").value;
+    const current_password = document.getElementById("current-password").value.trim();
+    const new_password = document.getElementById("new-password").value.trim();
+    const confirm_password = document.getElementById("confirm-password").value.trim();
 
     if (new_password !== confirm_password) {
         alert("Passwords do not match.");
@@ -73,14 +72,14 @@ async function handleChangePassword(event) {
     }
 }
 
-// ================= ADD USER =================
+// ---------------- ADD USER ----------------
 async function handleAddUser(event) {
     event.preventDefault();
 
-    const name = document.getElementById("user-name").value;
-    const email = document.getElementById("user-email").value;
-    const password = document.getElementById("default-password").value;
-    const is_admin = document.getElementById("is-admin").value;
+    const name = document.getElementById("user-name").value.trim();
+    const email = document.getElementById("user-email").value.trim();
+    const password = document.getElementById("default-password").value.trim();
+    const is_admin = Number(document.getElementById("is-admin").value);
 
     if (!name || !email || !password) {
         alert("Please fill out all required fields.");
@@ -108,11 +107,12 @@ async function handleAddUser(event) {
     }
 }
 
-// ================= TABLE CLICK =================
+// ---------------- DELETE / EDIT ----------------
 async function handleTableClick(event) {
     const id = event.target.dataset.id;
 
     if (event.target.classList.contains("delete-btn")) {
+
         const res = await fetch("../api/index.php?id=" + id, {
             method: "DELETE"
         });
@@ -128,13 +128,14 @@ async function handleTableClick(event) {
     }
 
     if (event.target.classList.contains("edit-btn")) {
-        const name = prompt("Enter new name:");
-        const email = prompt("Enter new email:");
+
+        const newName = prompt("Enter new name:");
+        const newEmail = prompt("Enter new email:");
 
         const res = await fetch("../api/index.php", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, name, email })
+            body: JSON.stringify({ id, name: newName, email: newEmail })
         });
 
         const data = await res.json();
@@ -147,7 +148,7 @@ async function handleTableClick(event) {
     }
 }
 
-// ================= SEARCH =================
+// ---------------- SEARCH ----------------
 function handleSearch() {
     const term = searchInput.value.toLowerCase();
 
@@ -164,7 +165,7 @@ function handleSearch() {
     renderTable(filtered);
 }
 
-// ================= SORT =================
+// ---------------- SORT ----------------
 function handleSort(event) {
     const index = event.currentTarget.cellIndex;
 
@@ -177,7 +178,9 @@ function handleSort(event) {
 
     users.sort((a, b) => {
         if (key === "is_admin") {
-            return dir === "asc" ? a[key] - b[key] : b[key] - a[key];
+            return dir === "asc"
+                ? Number(a[key]) - Number(b[key])
+                : Number(b[key]) - Number(a[key]);
         }
 
         return dir === "asc"
@@ -188,7 +191,7 @@ function handleSort(event) {
     renderTable(users);
 }
 
-// ================= LOAD USERS =================
+// ---------------- LOAD USERS ----------------
 async function loadUsersAndInitialize() {
     const res = await fetch("../api/index.php");
 
@@ -203,14 +206,15 @@ async function loadUsersAndInitialize() {
     renderTable(users);
 
     if (!addUserForm.dataset.bound) {
+
         addUserForm.addEventListener("submit", handleAddUser);
         passwordForm.addEventListener("submit", handleChangePassword);
         userTableBody.addEventListener("click", handleTableClick);
         searchInput.addEventListener("input", handleSearch);
 
-        tableHeaders.forEach(th =>
-            th.addEventListener("click", handleSort)
-        );
+        tableHeaders.forEach(th => {
+            th.addEventListener("click", handleSort);
+        });
 
         addUserForm.dataset.bound = "true";
     }
