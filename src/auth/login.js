@@ -3,20 +3,24 @@ const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
 const messageContainer = document.getElementById("message-container");
 
+// ---------------- DISPLAY MESSAGE ----------------
 function displayMessage(message, type) {
     messageContainer.textContent = message;
     messageContainer.className = type;
 }
 
+// ---------------- EMAIL VALIDATION ----------------
 function isValidEmail(email) {
     return /\S+@\S+\.\S+/.test(email);
 }
 
+// ---------------- PASSWORD VALIDATION ----------------
 function isValidPassword(password) {
     return password.length >= 8;
 }
 
-async function handleLogin(event) {
+// ---------------- HANDLE LOGIN ----------------
+function handleLogin(event) {
     event.preventDefault();
 
     const email = emailInput.value.trim();
@@ -32,37 +36,18 @@ async function handleLogin(event) {
         return;
     }
 
-    const res = await fetch("../api/login.php", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ email, password })
-    });
+    displayMessage("Login successful!", "success");
 
-    const data = await res.json();
-
-    if (data.success) {
-
-        displayMessage("Login successful!", "success");
-
-        // 
-        localStorage.setItem("user", JSON.stringify(data.user));
-
-        emailInput.value = "";
-        passwordInput.value = "";
-
-        //  ( 
-
-    } else {
-        displayMessage(data.message, "error");
-    }
+    emailInput.value = "";
+    passwordInput.value = "";
 }
 
+// ---------------- SETUP ----------------
 function setupLoginForm() {
     if (loginForm) {
         loginForm.addEventListener("submit", handleLogin);
     }
 }
 
+// ---------------- INIT ----------------
 setupLoginForm();
