@@ -7,7 +7,7 @@ const passwordForm = document.getElementById("password-form");
 const searchInput = document.getElementById("search-input");
 const tableHeaders = document.querySelectorAll("#user-table thead th");
 
-// المستخدم الحالي من login
+//    login
 const currentUser = JSON.parse(localStorage.getItem("user"));
 
 // ---------------- CREATE ROW ----------------
