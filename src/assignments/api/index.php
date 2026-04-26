@@ -19,7 +19,7 @@ $id     = $_GET['id'] ?? null;
 $data = json_decode(file_get_contents("php://input"), true) ?? [];
 
 /* =========================
-   HELPER
+   RESPONSE HELPER
 ========================= */
 function sendResponse($success, $data = null, $message = null, $status = 200) {
     http_response_code($status);
@@ -34,7 +34,7 @@ function sendResponse($success, $data = null, $message = null, $status = 200) {
 }
 
 /* =========================
-   GET ALL + SEARCH
+   GET ALL ASSIGNMENTS
 ========================= */
 if ($method === 'GET' && !$id && !$action) {
 
@@ -61,7 +61,7 @@ if ($method === 'GET' && !$id && !$action) {
 }
 
 /* =========================
-   GET ONE
+   GET SINGLE ASSIGNMENT
 ========================= */
 if ($method === 'GET' && $id) {
 
@@ -123,7 +123,7 @@ if ($method === 'POST' && $action === 'comment') {
     $stmt->execute([$assignment_id, $author, $text]);
 
     sendResponse(true, [
-        "id" => $db->lastInsertId(),
+        "id" => (int)$db->lastInsertId(),
         "assignment_id" => $assignment_id,
         "author" => $author,
         "text" => $text
@@ -159,7 +159,9 @@ if ($method === 'POST' && !$action) {
         json_encode($data['files'] ?? [])
     ]);
 
-    sendResponse(true, ["id" => $db->lastInsertId()], null, 201);
+    sendResponse(true, [
+        "id" => (int)$db->lastInsertId()
+    ], null, 201);
 }
 
 /* =========================
@@ -198,7 +200,7 @@ if ($method === 'PUT') {
         $id
     ]);
 
-    sendResponse(true, null);
+    sendResponse(true, ["updated" => true]);
 }
 
 /* =========================
@@ -216,7 +218,7 @@ if ($method === 'DELETE' && $id && !$action) {
     $stmt = $db->prepare("DELETE FROM assignments WHERE id=?");
     $stmt->execute([$id]);
 
-    sendResponse(true);
+    sendResponse(true, ["deleted" => true]);
 }
 
 /* =========================
@@ -240,7 +242,7 @@ if ($method === 'DELETE' && $action === 'delete_comment') {
     $stmt = $db->prepare("DELETE FROM comments_assignment WHERE id=?");
     $stmt->execute([$comment_id]);
 
-    sendResponse(true);
+    sendResponse(true, ["deleted" => true]);
 }
 
 /* =========================
