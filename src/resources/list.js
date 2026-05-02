@@ -1,29 +1,36 @@
 const resourceListSection = document.querySelector("#resource-list-section");
 
 function createResourceArticle(resource) {
-    let article = document.createElement("article");
+  const article = document.createElement("article");
 
-    article.innerHTML = `
-        <h2>${resource.title}</h2>
-        <p>${resource.description}</p>
-        <a href="details.html?id=${resource.id}">View Resource & Discussion</a>
-    `;
+  const title = document.createElement("h2");
+  title.textContent = resource.title;
 
-    return article;
+  const description = document.createElement("p");
+  description.textContent = resource.description;
+
+  const link = document.createElement("a");
+  link.href = `details.html?id=${resource.id}`;
+  link.textContent = "View Resource & Discussion";
+
+  article.appendChild(title);
+  article.appendChild(description);
+  article.appendChild(link);
+
+  return article;
 }
 
 async function loadResources() {
-    let response = await fetch("./api/index.php");
-    let result = await response.json();
+  const response = await fetch("./api/index.php");
+  const result = await response.json();
 
-    if (result.success) {
-        resourceListSection.innerHTML = "";
+  resourceListSection.innerHTML = "";
 
-        result.data.forEach(function(resource) {
-            let article = createResourceArticle(resource);
-            resourceListSection.appendChild(article);
-        });
-    }
+  if (result.success && result.data) {
+    result.data.forEach(function(resource) {
+      resourceListSection.appendChild(createResourceArticle(resource));
+    });
+  }
 }
 
 loadResources();
