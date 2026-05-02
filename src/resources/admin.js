@@ -1,5 +1,5 @@
-let resources = [];
-let editId = null;
+var resources = [];
+var editId = null;
 
 const resourceForm = document.querySelector("#resource-form");
 const resourcesTbody = document.querySelector("#resources-tbody");
