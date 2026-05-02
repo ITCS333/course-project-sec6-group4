@@ -7,26 +7,26 @@ class Database {
         $this->conn = null;
 
         try {
-            $this->conn = new PDO("sqlite::memory:");
+            $this->conn = new PDO("sqlite:database.db");
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
             $this->conn->exec("
-                CREATE TABLE resources (
+                CREATE TABLE IF NOT EXISTS resources (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT,
                     description TEXT,
                     link TEXT,
-                    created_at TEXT
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
                 );
             ");
 
             $this->conn->exec("
-                CREATE TABLE comments_resource (
+                CREATE TABLE IF NOT EXISTS comments_resource (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     resource_id INTEGER,
                     author TEXT,
                     text TEXT,
-                    created_at TEXT
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
                 );
             ");
 
@@ -38,3 +38,4 @@ class Database {
     }
 }
 ?>
+*------------------------
