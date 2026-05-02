@@ -1,53 +1,108 @@
 var resources = [];
 var editId = null;
 
-const resourceForm = document.querySelector("#resource-form");
-const resourcesTbody = document.querySelector("#resources-tbody");
+var resourceForm = document.querySelector("#resource-form");
+var resourcesTbody = document.querySelector("#resources-tbody");
 
 function createResourceRow(resource) {
-  const tr = document.createElement("tr");
+  var tr = document.createElement("tr");
 
-  // 
-  const td1 = document.createElement("td");
-  td1.textContent = resource.title;
-
-  const td2 = document.createElement("td");
-  td2.textContent = resource.description;
-
-  const td3 = document.createElement("td");
-  const link = document.createElement("a");
-  link.href = resource.link;
-  link.textContent = resource.link;
-  td3.appendChild(link);
-
-  const td4 = document.createElement("td");
-
-  const editBtn = document.createElement("button");
-  editBtn.className = "edit-btn";
-  editBtn.dataset.id = resource.id;
-  editBtn.textContent = "Edit";
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.className = "delete-btn";
-  deleteBtn.dataset.id = resource.id;
-  deleteBtn.textContent = "Delete";
-
-  td4.appendChild(editBtn);
-  td4.appendChild(deleteBtn);
-
-  tr.appendChild(td1);
-  tr.appendChild(td2);
-  tr.appendChild(td3);
-  tr.appendChild(td4);
+  tr.innerHTML = `
+    <td>${resource.title}</td>
+    <td>${resource.description}</td>
+    <td><a href="${resource.link}">${resource.link}</a></td>
+    <td>
+      <button class="edit-btn" data-id="${resource.id}">Edit</button>
+      <button class="delete-btn" data-id="${resource.id}">Delete</button>
+    </td>
+  `;
 
   return tr;
 }
 
 function renderTable() {
+  resourcesTbody = document.querySelector("#resources-tbody");
   resourcesTbody.innerHTML = "";
 
   resources.forEach(function(resource) {
-    const row = createResourceRow(resource);
-    resourcesTbody.appendChild(row);
+    resourcesTbody.appendChild(createResourceRow(resource));
   });
 }
+
+async function handleAddResource(event) {
+  event.preventDefault();
+
+  var title = document.querySelector("#resource-title").value;
+  var description = document.querySelector("#resource-description").value;
+  var link = document.querySelector("#resource-link").value;
+
+  var response = await fetch("./api/index.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: title, description: description, link: link })
+  });
+
+  var result = await response.json();
+
+  if (result.success) {
+    resources.push({
+      id: result.id,
+      title: title,
+      description: description,
+      link: link
+    });
+
+    renderTable();
+    resourceForm.reset();
+  }
+}
+
+async function handleTableClick(event) {
+  if (event.target.classList.contains("delete-btn")) {
+    var id = event.target.dataset.id;
+
+    var response = await fetch(`./api/index.php?id=${id}`, {
+      method: "DELETE"
+    });
+
+    var result = await response.json();
+
+    if (result.success) {
+      resources = resources.filter(function(resource) {
+        return resource.id != id;
+      });
+
+      renderTable();
+    }
+  }
+
+  if (event.target.classList.contains("edit-btn")) {
+    var id = event.target.dataset.id;
+
+    var resource = resources.find(function(resource) {
+      return resource.id == id;
+    });
+
+    document.querySelector("#resource-title").value = resource.title;
+    document.querySelector("#resource-description").value = resource.description;
+    document.querySelector("#resource-link").value = resource.link;
+
+    editId = id;
+    document.querySelector("#add-resource").textContent = "Update Resource";
+  }
+}
+
+async function loadAndInitialize() {
+  var response = await fetch("./api/index.php");
+  var result = await response.json();
+
+  if (result.success) {
+    resources = result.data;
+    renderTable();
+  }
+
+  resourceForm.addEventListener("submit", handleAddResource);
+  resourcesTbody.addEventListener("click", handleTableClick);
+}
+
+loadAndInitialize();
