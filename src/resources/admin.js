@@ -10,7 +10,7 @@ function createResourceRow(resource) {
   tr.innerHTML = `
     <td>${resource.title}</td>
     <td>${resource.description}</td>
-    <td><a href="${resource.link}" target="_blank">${resource.link}</a></td>
+    <td><a href="${resource.link}">${resource.link}</a></td>
     <td>
       <button class="edit-btn" data-id="${resource.id}">Edit</button>
       <button class="delete-btn" data-id="${resource.id}">Delete</button>
@@ -21,10 +21,11 @@ function createResourceRow(resource) {
 }
 
 function renderTable() {
-  resourcesTbody.innerHTML = "";
+  const tbody = document.querySelector("#resources-tbody");
+  tbody.innerHTML = "";
 
   resources.forEach(function(resource) {
-    resourcesTbody.appendChild(createResourceRow(resource));
+    tbody.appendChild(createResourceRow(resource));
   });
 }
 
@@ -34,32 +35,6 @@ async function handleAddResource(event) {
   const title = document.querySelector("#resource-title").value;
   const description = document.querySelector("#resource-description").value;
   const link = document.querySelector("#resource-link").value;
-
-  if (editId) {
-    const response = await fetch("./api/index.php", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editId, title, description, link })
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      resources = resources.map(function(resource) {
-        if (resource.id == editId) {
-          return { id: editId, title, description, link };
-        }
-        return resource;
-      });
-
-      editId = null;
-      document.querySelector("#add-resource").textContent = "Add Resource";
-      resourceForm.reset();
-      renderTable();
-    }
-
-    return;
-  }
 
   const response = await fetch("./api/index.php", {
     method: "POST",
@@ -72,13 +47,13 @@ async function handleAddResource(event) {
   if (result.success) {
     resources.push({
       id: result.id,
-      title,
-      description,
-      link
+      title: title,
+      description: description,
+      link: link
     });
 
-    resourceForm.reset();
     renderTable();
+    resourceForm.reset();
   }
 }
 
