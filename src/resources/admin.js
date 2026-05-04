@@ -1,12 +1,10 @@
 var resources = [];
 var editId = null;
-
 var resourceForm = document.querySelector("#resource-form");
 var resourcesTbody = document.querySelector("#resources-tbody");
 
 function createResourceRow(resource) {
   var tr = document.createElement("tr");
-
   tr.innerHTML = `
     <td>${resource.title}</td>
     <td>${resource.description}</td>
@@ -16,84 +14,83 @@ function createResourceRow(resource) {
       <button class="delete-btn" data-id="${resource.id}">Delete</button>
     </td>
   `;
-
   return tr;
 }
 
 function renderTable() {
   var tbody = document.querySelector("#resources-tbody");
   tbody.innerHTML = "";
-
-  var list = resources;
-
-  if (this && Array.isArray(this.resources) && this.resources.length > 0) {
-    list = this.resources;
-  }
-
-  list.forEach(function(resource) {
+  resources.forEach(function(resource) {
     tbody.appendChild(createResourceRow(resource));
   });
 }
 
 async function handleAddResource(event) {
   event.preventDefault();
-
   var title = document.querySelector("#resource-title").value;
   var description = document.querySelector("#resource-description").value;
   var link = document.querySelector("#resource-link").value;
 
-  var response = await fetch("./api/index.php", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title: title, description: description, link: link })
-  });
-
-  var result = await response.json();
-
-  if (result.success) {
-    globalThis.resources.push({
-      id: result.id,
-      title: title,
-      description: description,
-      link: link
+  if (editId !== null) {
+    var response = await fetch("./api/index.php", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editId, title: title, description: description, link: link })
     });
-
-    renderTable();
-    resourceForm.reset();
+    var result = await response.json();
+    if (result.success) {
+      resources = resources.map(function(r) {
+        return r.id == editId ? { id: editId, title: title, description: description, link: link } : r;
+      });
+      editId = null;
+      document.querySelector("#add-resource").textContent = "Add Resource";
+      renderTable();
+      resourceForm.reset();
+    }
+  } else {
+    var response = await fetch("./api/index.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: title, description: description, link: link })
+    });
+    var result = await response.json();
+    if (result.success) {
+      resources.push({
+        id: result.id,
+        title: title,
+        description: description,
+        link: link
+      });
+      renderTable();
+      resourceForm.reset();
+    }
   }
 }
 
 async function handleTableClick(event) {
   if (event.target.classList.contains("delete-btn")) {
     var id = event.target.dataset.id;
-
     var response = await fetch(`./api/index.php?id=${id}`, {
       method: "DELETE"
     });
-
     var result = await response.json();
-
     if (result.success) {
-      globalThis.resources = globalThis.resources.filter(function(resource) {
+      resources = resources.filter(function(resource) {
         return resource.id != id;
       });
-
       renderTable();
     }
   }
 
   if (event.target.classList.contains("edit-btn")) {
     var id = event.target.dataset.id;
-
-    var resource = globalThis.resources.find(function(resource) {
-      return resource.id == id;
+    var resource = resources.find(function(r) {
+      return r.id == id;
     });
-
     document.querySelector("#resource-title").value = resource.title;
     document.querySelector("#resource-description").value = resource.description;
     document.querySelector("#resource-link").value = resource.link;
-
-    globalThis.editId = id;
+    editId = id;
     document.querySelector("#add-resource").textContent = "Update Resource";
   }
 }
@@ -101,12 +98,10 @@ async function handleTableClick(event) {
 async function loadAndInitialize() {
   var response = await fetch("./api/index.php");
   var result = await response.json();
-
   if (result.success) {
-    globalThis.resources = result.data;
+    resources = result.data;
     renderTable();
   }
-
   resourceForm.addEventListener("submit", handleAddResource);
   resourcesTbody.addEventListener("click", handleTableClick);
 }
