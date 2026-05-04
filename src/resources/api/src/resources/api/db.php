@@ -9,3 +9,4 @@ function getDBConnection(): PDO {
     }
     return $pdo;
 }
+?>
