@@ -24,9 +24,7 @@ function renderTable() {
   var tbody = document.querySelector("#resources-tbody");
   tbody.innerHTML = "";
 
-  var data = globalThis.resources || resources;
-
-  data.forEach(function(resource) {
+  globalThis.resources.forEach(function(resource) {
     tbody.appendChild(createResourceRow(resource));
   });
 }
