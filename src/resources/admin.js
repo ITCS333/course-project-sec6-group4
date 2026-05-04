@@ -1,5 +1,5 @@
-var resources = [];
-var editId = null;
+globalThis.resources = [];
+globalThis.editId = null;
 
 var resourceForm = document.querySelector("#resource-form");
 var resourcesTbody = document.querySelector("#resources-tbody");
@@ -45,7 +45,7 @@ async function handleAddResource(event) {
   var result = await response.json();
 
   if (result.success) {
-    resources.push({
+    globalThis.resources.push({
       id: result.id,
       title: title,
       description: description,
@@ -68,7 +68,7 @@ async function handleTableClick(event) {
     var result = await response.json();
 
     if (result.success) {
-      resources = resources.filter(function(resource) {
+      globalThis.resources = globalThis.resources.filter(function(resource) {
         return resource.id != id;
       });
 
@@ -79,7 +79,7 @@ async function handleTableClick(event) {
   if (event.target.classList.contains("edit-btn")) {
     var id = event.target.dataset.id;
 
-    var resource = resources.find(function(resource) {
+    var resource = globalThis.resources.find(function(resource) {
       return resource.id == id;
     });
 
@@ -87,7 +87,7 @@ async function handleTableClick(event) {
     document.querySelector("#resource-description").value = resource.description;
     document.querySelector("#resource-link").value = resource.link;
 
-    editId = id;
+    globalThis.editId = id;
     document.querySelector("#add-resource").textContent = "Update Resource";
   }
 }
@@ -97,7 +97,7 @@ async function loadAndInitialize() {
   var result = await response.json();
 
   if (result.success) {
-    resources = result.data;
+    globalThis.resources = result.data;
     renderTable();
   }
 
