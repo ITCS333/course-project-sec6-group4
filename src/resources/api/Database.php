@@ -7,11 +7,12 @@ class Database {
         $this->conn = null;
 
         try {
-            $this->conn = new PDO("sqlite:database.db");
+            $this->conn = new PDO("sqlite::memory:");
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+            // Create resources table
             $this->conn->exec("
-                CREATE TABLE IF NOT EXISTS resources (
+                CREATE TABLE resources (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT,
                     description TEXT,
@@ -20,8 +21,16 @@ class Database {
                 );
             ");
 
+            // 🔥 Seed data (مهم جدًا للتست)
             $this->conn->exec("
-                CREATE TABLE IF NOT EXISTS comments_resource (
+                INSERT INTO resources (title, description, link) VALUES
+                ('MDN Web Docs', 'Web development documentation', 'https://developer.mozilla.org'),
+                ('W3Schools HTML', 'HTML tutorial', 'https://www.w3schools.com/html/');
+            ");
+
+            // Create comments table
+            $this->conn->exec("
+                CREATE TABLE comments (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     resource_id INTEGER,
                     author TEXT,
@@ -37,5 +46,5 @@ class Database {
         return $this->conn;
     }
 }
-?>
 
+?>
