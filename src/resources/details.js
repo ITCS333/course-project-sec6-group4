@@ -21,32 +21,24 @@ function renderResourceDetails(resource) {
 
 function createCommentArticle(comment) {
     let article = document.createElement("article");
-
     article.innerHTML = `
         <p>${comment.text}</p>
         <footer>Posted by: ${comment.author}</footer>
     `;
-
     return article;
 }
 
 function renderComments() {
     commentList.innerHTML = "";
-
     currentComments.forEach(function(comment) {
-        let article = createCommentArticle(comment);
-        commentList.appendChild(article);
+        commentList.appendChild(createCommentArticle(comment));
     });
 }
 
 async function handleAddComment(event) {
     event.preventDefault();
-
     let commentText = newComment.value.trim();
-
-    if (commentText == "") {
-        return;
-    }
+    if (commentText === "") return;
 
     let response = await fetch("./api/index.php?action=comment", {
         method: "POST",
@@ -57,9 +49,7 @@ async function handleAddComment(event) {
             text: commentText
         })
     });
-
     let result = await response.json();
-
     if (result.success) {
         currentComments.push(result.data);
         renderComments();
@@ -69,7 +59,6 @@ async function handleAddComment(event) {
 
 async function initializePage() {
     currentResourceId = getResourceIdFromURL();
-
     if (!currentResourceId) {
         resourceTitle.textContent = "Resource not found.";
         return;
@@ -77,7 +66,7 @@ async function initializePage() {
 
     let responses = await Promise.all([
         fetch(`./api/index.php?id=${currentResourceId}`),
-        fetch(`./api/index.php?resource_id=${currentResourceId}&action=comments`)
+        fetch(`./api/index.php?action=comments&resource_id=${currentResourceId}`)
     ]);
 
     let resourceResult = await responses[0].json();
@@ -85,10 +74,8 @@ async function initializePage() {
 
     if (resourceResult.success && resourceResult.data) {
         currentComments = commentsResult.data || [];
-
         renderResourceDetails(resourceResult.data);
         renderComments();
-
         commentForm.addEventListener("submit", handleAddComment);
     } else {
         resourceTitle.textContent = "Resource not found.";
