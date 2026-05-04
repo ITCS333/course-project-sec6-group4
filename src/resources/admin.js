@@ -21,11 +21,13 @@ function createResourceRow(resource) {
 }
 
 function renderTable() {
-  var tbody = document.querySelector("#resources-tbody");
+  var tbody = document.getElementById("resources-tbody"); // مهم
+
   tbody.innerHTML = "";
 
   resources.forEach(function(resource) {
-    tbody.appendChild(createResourceRow(resource));
+    var row = createResourceRow(resource);
+    tbody.appendChild(row);
   });
 }
 
