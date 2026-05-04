@@ -1,5 +1,5 @@
-globalThis.resources = [];
-globalThis.editId = null;
+var resources = [];
+var editId = null;
 
 var resourceForm = document.querySelector("#resource-form");
 var resourcesTbody = document.querySelector("#resources-tbody");
@@ -24,7 +24,7 @@ function renderTable() {
   var tbody = document.querySelector("#resources-tbody");
   tbody.innerHTML = "";
 
-  globalThis.resources.forEach(function(resource) {
+  resources.forEach(function(resource) {
     tbody.appendChild(createResourceRow(resource));
   });
 }
