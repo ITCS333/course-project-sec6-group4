@@ -24,7 +24,6 @@ function renderTable() {
     tbody.appendChild(createResourceRow(resource));
   });
 }
-
 async function handleAddResource(event) {
   event.preventDefault();
   var title = document.querySelector("#resource-title").value;
