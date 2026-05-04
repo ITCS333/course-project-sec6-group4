@@ -1,6 +1,5 @@
-window.resources = [];
-window.editId = null;
-
+var resources = [];
+var editId = null;
 var resourceForm = document.querySelector("#resource-form");
 var resourcesTbody = document.querySelector("#resources-tbody");
 
@@ -18,10 +17,11 @@ function createResourceRow(resource) {
   return tr;
 }
 
-function renderTable() {
+function renderTable(arr) {
+  var list = Array.isArray(arr) ? arr : resources;
   var tbody = document.querySelector("#resources-tbody");
   tbody.innerHTML = "";
-  window.resources.forEach(function(resource) {
+  list.forEach(function(resource) {
     tbody.appendChild(createResourceRow(resource));
   });
 }
@@ -32,20 +32,20 @@ async function handleAddResource(event) {
   var description = document.querySelector("#resource-description").value;
   var link = document.querySelector("#resource-link").value;
 
-  if (window.editId !== null) {
+  if (editId !== null) {
     var response = await fetch("./api/index.php", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: window.editId, title: title, description: description, link: link })
+      body: JSON.stringify({ id: editId, title: title, description: description, link: link })
     });
     var result = await response.json();
     if (result.success) {
-      window.resources = window.resources.map(function(r) {
-        return r.id == window.editId ? { id: window.editId, title: title, description: description, link: link } : r;
+      resources = resources.map(function(r) {
+        return r.id == editId ? { id: editId, title: title, description: description, link: link } : r;
       });
-      window.editId = null;
+      editId = null;
       document.querySelector("#add-resource").textContent = "Add Resource";
-      renderTable();
+      renderTable(resources);
       resourceForm.reset();
     }
   } else {
@@ -56,13 +56,13 @@ async function handleAddResource(event) {
     });
     var result = await response.json();
     if (result.success) {
-      window.resources.push({
+      resources.push({
         id: result.id,
         title: title,
         description: description,
         link: link
       });
-      renderTable();
+      renderTable(resources);
       resourceForm.reset();
     }
   }
@@ -76,35 +76,39 @@ async function handleTableClick(event) {
     });
     var result = await response.json();
     if (result.success) {
-      window.resources = window.resources.filter(function(resource) {
+      resources = resources.filter(function(resource) {
         return resource.id != id;
       });
-      renderTable();
+      renderTable(resources);
     }
   }
 
   if (event.target.classList.contains("edit-btn")) {
     var id = event.target.dataset.id;
-    var resource = window.resources.find(function(r) {
+    var resource = resources.find(function(r) {
       return r.id == id;
     });
     document.querySelector("#resource-title").value = resource.title;
     document.querySelector("#resource-description").value = resource.description;
     document.querySelector("#resource-link").value = resource.link;
-    window.editId = id;
+    editId = id;
     document.querySelector("#add-resource").textContent = "Update Resource";
   }
 }
 
 async function loadAndInitialize() {
+  if (loadAndInitialize._listenersAttached) return;
+  loadAndInitialize._listenersAttached = true;
+
   var response = await fetch("./api/index.php");
   var result = await response.json();
   if (result.success) {
-    window.resources = result.data;
-    renderTable();
+    resources = result.data;
+    renderTable(resources);
   }
   resourceForm.addEventListener("submit", handleAddResource);
   resourcesTbody.addEventListener("click", handleTableClick);
 }
+loadAndInitialize._listenersAttached = false;
 
 loadAndInitialize();
