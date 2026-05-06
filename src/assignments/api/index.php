@@ -24,7 +24,7 @@ $data = json_decode(file_get_contents("php://input"), true) ?? [];
 function respond($success, $data = null, $message = null, $status = 200) {
     http_response_code($status);
     $res = ["success" => $success];
-    if ($data !== null) $res = array_merge($res, $data);
+    if ($data !== null) $res["data"] = $data;
     if ($message !== null) $res["message"] = $message;
     echo json_encode($res);
     exit;
@@ -52,7 +52,7 @@ if ($method === 'GET' && !$id && !$action) {
         $r['id'] = (int)$r['id'];
         $r['files'] = json_decode($r['files'] ?? '[]', true) ?? [];
     }
-    respond(true, ["assignments" => $rows]);
+    respond(true, $rows);
 }
 
 /* =========================
@@ -85,7 +85,7 @@ if ($method === 'GET' && $action === 'comments') {
         $r['id'] = (int)$r['id'];
         $r['assignment_id'] = (int)$r['assignment_id'];
     }
-    respond(true, ["comments" => $rows]);
+    respond(true, $rows);
 }
 
 /* =========================
@@ -165,7 +165,7 @@ if ($method === 'DELETE' && $id && !$action) {
     $stmt->execute([$id]);
 
     if ($stmt->rowCount() === 0) respond(false, null, "Not found", 404);
-    respond(true);
+    respond(true, ["deleted" => true]);
 }
 
 /* =========================
@@ -179,7 +179,7 @@ if ($method === 'DELETE' && $action === 'delete_comment') {
     $stmt->execute([$cid]);
 
     if ($stmt->rowCount() === 0) respond(false, null, "Not found", 404);
-    respond(true);
+    respond(true, ["deleted" => true]);
 }
 
 respond(false, null, "Method not allowed", 405);
