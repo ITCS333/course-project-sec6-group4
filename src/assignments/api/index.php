@@ -18,10 +18,15 @@ $id     = $_GET['id'] ?? null;
 
 $data = json_decode(file_get_contents("php://input"), true) ?? [];
 
-/* ========================= */
-function respond($data, $status = 200) {
+/* =========================
+   HELPERS
+========================= */
+function respond($success, $data = null, $message = null, $status = 200) {
     http_response_code($status);
-    echo json_encode($data);
+    $res = ["success" => $success];
+    if ($data !== null) $res = array_merge($res, $data);
+    if ($message !== null) $res["message"] = $message;
+    echo json_encode($res);
     exit;
 }
 
@@ -31,18 +36,23 @@ function isValidDate($date, $format = 'Y-m-d') {
 }
 
 /* =========================
-   GET ALL
+   GET ALL / SEARCH
 ========================= */
 if ($method === 'GET' && !$id && !$action) {
-    $stmt = $db->query("SELECT * FROM assignments ORDER BY due_date ASC");
+    $search = $_GET['search'] ?? null;
+    if ($search) {
+        $stmt = $db->prepare("SELECT * FROM assignments WHERE title LIKE ? OR description LIKE ? ORDER BY due_date ASC");
+        $stmt->execute(["%$search%", "%$search%"]);
+    } else {
+        $stmt = $db->query("SELECT * FROM assignments ORDER BY due_date ASC");
+    }
+    
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
     foreach ($rows as &$r) {
         $r['id'] = (int)$r['id'];
         $r['files'] = json_decode($r['files'] ?? '[]', true) ?? [];
     }
-
-    respond($rows);
+    respond(true, ["assignments" => $rows]);
 }
 
 /* =========================
@@ -52,33 +62,55 @@ if ($method === 'GET' && $id && !$action) {
     $stmt = $db->prepare("SELECT * FROM assignments WHERE id = ?");
     $stmt->execute([$id]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$row) respond(["error" => "Not found"], 404);
+    
+    if (!$row) respond(false, null, "Not found", 404);
 
     $row['id'] = (int)$row['id'];
     $row['files'] = json_decode($row['files'] ?? '[]', true) ?? [];
-
-    respond($row);
+    respond(true, $row);
 }
 
 /* =========================
    GET COMMENTS
 ========================= */
 if ($method === 'GET' && $action === 'comments') {
-    $aid = $_GET['assignment_id'] ?? $_GET['id'] ?? null;
-
-    if (!$aid) respond([], 200);
+    $aid = $_GET['assignment_id'] ?? null;
+    if (!$aid) respond(false, null, "Missing assignment ID", 400);
 
     $stmt = $db->prepare("SELECT * FROM comments_assignment WHERE assignment_id = ? ORDER BY created_at ASC");
     $stmt->execute([$aid]);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    foreach ($rows as &$r) {
+    
+    foreach($rows as &$r) {
         $r['id'] = (int)$r['id'];
         $r['assignment_id'] = (int)$r['assignment_id'];
     }
+    respond(true, ["comments" => $rows]);
+}
 
-    respond($rows);
+/* =========================
+   CREATE COMMENT
+========================= */
+if ($method === 'POST' && $action === 'comment') {
+    $aid = $data['assignment_id'] ?? null;
+    $text = trim($data['text'] ?? '');
+    $author = $data['author'] ?? 'Student';
+
+    if (!$aid || $text === '') respond(false, null, "Bad request", 400);
+
+    $check = $db->prepare("SELECT id FROM assignments WHERE id = ?");
+    $check->execute([$aid]);
+    if (!$check->fetch()) respond(false, null, "Assignment not found", 404);
+
+    $stmt = $db->prepare("INSERT INTO comments_assignment (assignment_id, author, text) VALUES (?, ?, ?)");
+    $stmt->execute([$aid, $author, $text]);
+
+    respond(true, [
+        "id" => (int)$db->lastInsertId(),
+        "assignment_id" => (int)$aid,
+        "author" => $author,
+        "text" => $text
+    ], null, 201);
 }
 
 /* =========================
@@ -89,41 +121,13 @@ if ($method === 'POST' && !$action) {
     $desc  = trim($data['description'] ?? '');
     $due   = $data['due_date'] ?? '';
 
-    if ($title === '' || $desc === '' || $due === '') {
-        respond(["error" => "Missing fields"], 400);
-    }
-
-    if (!isValidDate($due)) {
-        respond(["error" => "Invalid date"], 400);
-    }
+    if ($title === '' || $desc === '' || $due === '') respond(false, null, "Missing fields", 400);
+    if (!isValidDate($due)) respond(false, null, "Invalid date format", 400);
 
     $stmt = $db->prepare("INSERT INTO assignments (title, description, due_date, files) VALUES (?, ?, ?, ?)");
     $stmt->execute([$title, $desc, $due, json_encode($data['files'] ?? [])]);
 
-    // 🔥 FIX: return id directly
-    respond([
-        "id" => (int)$db->lastInsertId()
-    ], 201);
-}
-
-/* =========================
-   CREATE COMMENT
-========================= */
-if ($method === 'POST' && ($action === 'comment' || $action === 'create_comment')) {
-    $aid = $data['assignment_id'] ?? null;
-    $text = trim($data['text'] ?? '');
-    $author = $data['author'] ?? 'Student';
-
-    if (!$aid || $text === '') {
-        respond(["error" => "Bad request"], 400);
-    }
-
-    $stmt = $db->prepare("INSERT INTO comments_assignment (assignment_id, author, text) VALUES (?, ?, ?)");
-    $stmt->execute([$aid, $author, $text]);
-
-    respond([
-        "id" => (int)$db->lastInsertId()
-    ], 201);
+    respond(true, ["id" => (int)$db->lastInsertId()], null, 201);
 }
 
 /* =========================
@@ -131,11 +135,14 @@ if ($method === 'POST' && ($action === 'comment' || $action === 'create_comment'
 ========================= */
 if ($method === 'PUT') {
     $aid = $data['id'] ?? $id;
+    if (!$aid) respond(false, null, "ID missing", 400);
 
-    if (!$aid) respond(["error" => "Missing ID"], 400);
-
+    $check = $db->prepare("SELECT id FROM assignments WHERE id = ?");
+    $check->execute([$aid]);
+    if (!$check->fetch()) respond(false, null, "Not found", 404);
+    
     if (isset($data['due_date']) && !isValidDate($data['due_date'])) {
-        respond(["error" => "Invalid date"], 400);
+        respond(false, null, "Invalid date format", 400);
     }
 
     $stmt = $db->prepare("UPDATE assignments SET title=?, description=?, due_date=?, files=? WHERE id=?");
@@ -147,7 +154,7 @@ if ($method === 'PUT') {
         $aid
     ]);
 
-    respond(["success" => true]);
+    respond(true, ["updated" => true]);
 }
 
 /* =========================
@@ -157,22 +164,22 @@ if ($method === 'DELETE' && $id && !$action) {
     $stmt = $db->prepare("DELETE FROM assignments WHERE id = ?");
     $stmt->execute([$id]);
 
-    // 🔥 FIX: always return true for test
-    respond(["success" => true]);
+    if ($stmt->rowCount() === 0) respond(false, null, "Not found", 404);
+    respond(true);
 }
 
 /* =========================
    DELETE COMMENT
 ========================= */
-if ($method === 'DELETE' && ($action === 'delete_comment' || $action === 'comment')) {
-    $cid = $_GET['comment_id'] ?? $_GET['id'] ?? null;
-
-    if (!$cid) respond(["error" => "Missing ID"], 400);
+if ($method === 'DELETE' && $action === 'delete_comment') {
+    $cid = $_GET['comment_id'] ?? null;
+    if (!$cid) respond(false, null, "Bad request", 400);
 
     $stmt = $db->prepare("DELETE FROM comments_assignment WHERE id = ?");
     $stmt->execute([$cid]);
 
-    respond(["success" => true]);
+    if ($stmt->rowCount() === 0) respond(false, null, "Not found", 404);
+    respond(true);
 }
 
-respond(["error" => "Method not allowed"], 405);
+respond(false, null, "Method not allowed", 405);
