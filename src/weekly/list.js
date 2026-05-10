@@ -1,3 +1,7 @@
+/*
+  Requirement: Populate the "Weekly Course Breakdown" list page.
+*/
+
 // --- Element Selections ---
 const weekListSection = document.getElementById('week-list-section');
 
@@ -29,5 +33,3 @@ async function loadWeeks() {
 
 // --- Initial Page Load ---
 loadWeeks();
-
-
