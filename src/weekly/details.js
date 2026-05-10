@@ -24,7 +24,8 @@ function renderWeekDetails(week) {
   weekDescription.textContent = week.description;
 
   weekLinksList.innerHTML = '';
-  week.links.forEach(url => {
+  const links = week.links ?? [];
+  links.forEach(url => {
     const li = document.createElement('li');
     const a  = document.createElement('a');
     a.href        = url;
