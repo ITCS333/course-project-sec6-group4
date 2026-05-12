@@ -13,7 +13,8 @@ The website covers five functional areas, each assigned to one team member.
 
 ## Live Demo
 
-> **Replit Deployment:** Update this link with your Replit deployment URL once the project is live.
+> **Replit Deployment:** https://replit.com/@zainabobad9/course-project-sec6-group4
+
 
 ---
 
@@ -80,8 +81,7 @@ All seed users share the password **`password`**.
 
 ---
 
-## Replit Link
-https://replit.com/@zainabobad9/course-project-sec6-group4
+
 
 
 ## Grading
